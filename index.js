@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const app = express()
 const port = process.env.PORT || 5000;
@@ -32,6 +32,7 @@ async function run() {
   try {
 
     const bookCollections = client.db('library').collection('books');
+    const  borrowedCollection = client.db('library').collection('borrowedBooks');
 
     app.post('/books', async(req, res)=>{
         const books =req.body;
@@ -48,9 +49,49 @@ async function run() {
       const { category } = req.params;
       const query = { category: category };
       const result = await bookCollections.find(query).toArray();
-      console.log(result)
       res.send(result);
     });
+
+    app.get('/books/category/details/:id', async (req,res) =>{
+       const id=req.params.id;
+       const query = {_id : new ObjectId(id)};
+       const details=await bookCollections.findOne(query);
+       res.send(details);
+      })
+
+      app.post('/borrowedBooks', async(req, res)=>{
+          const book =req.body;
+          const result = await  borrowedCollection.insertOne(book);
+          res.send(result)
+
+          console.log(book)
+      })
+
+      // app.get('/borrowedBooks', async(req, res)=>{
+      //   const result =await borrowedCollection.find({}).sort({dateOut:-1}).toArray();
+      //   res.send(result)
+  
+      // })
+      app.get('/borrowedBooks',async(req, res)=>{
+        console.log(req.query.email)
+        let query = {}
+        // console.log(req.cookies.token)
+        // if(req.query?.email !== req.user?.email){
+        //     return  res.status(403).send("Unauthorized")
+        // }
+         if (req.query?.email){
+            query = {email: req.query.email}
+        }
+        const result = await  borrowedCollection.find(query).toArray()
+        res.send(result)
+    })
+
+    app.delete('/borrowedBooks/:id', async(req, res)=>{
+      const id  = req.params.id;
+      const query = {_id:new ObjectId(id)};
+      const result = await borrowedCollection.deleteOne(query)
+      res.send(result)
+    })
 
 
     // Connect the client to the server	(optional starting in v4.7)
